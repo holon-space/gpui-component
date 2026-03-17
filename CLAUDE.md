@@ -226,6 +226,10 @@ This project has custom Claude Code skills in `.claude/skills/` to assist with c
 
 When working on tasks related to these areas, Claude Code will automatically use the appropriate skill to provide specialized guidance and patterns.
 
+## Component Design for Reactive Backends
+
+See `.claude/REACTIVE_COMPONENT_DESIGN.md` for designing components that work with reactive, event-sourced backends (CDC streams, fire-and-forget operations, optimistic updates) while remaining usable as standalone components. Key principles: Entity-backed state, identity-based events, caller-controlled optimistic updates.
+
 ## Testing Guidelines
 
 See `.claude/COMPONENT_TEST_RULES.md` for detailed testing principles:
