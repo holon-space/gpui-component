@@ -162,6 +162,8 @@ impl InputState {
             return;
         }
 
+        let cursor_before = self.cursor();
+
         if !self.selected_range.is_empty() {
             self.move_to(
                 self.previous_boundary(self.selected_range.start.saturating_sub(1)),
@@ -171,6 +173,12 @@ impl InputState {
         }
         self.pause_blink_cursor(cx);
         self.move_vertical(-1, window, cx);
+
+        // Zed pattern: if cursor didn't move, we're at the top boundary — propagate
+        // so a parent view can handle cross-block navigation.
+        if self.cursor() == cursor_before {
+            cx.propagate();
+        }
     }
 
     pub(super) fn down(&mut self, action: &MoveDown, window: &mut Window, cx: &mut Context<Self>) {
@@ -182,6 +190,8 @@ impl InputState {
             return;
         }
 
+        let cursor_before = self.cursor();
+
         if !self.selected_range.is_empty() {
             self.move_to(
                 self.next_boundary(self.selected_range.end.saturating_sub(1)),
@@ -192,6 +202,12 @@ impl InputState {
 
         self.pause_blink_cursor(cx);
         self.move_vertical(1, window, cx);
+
+        // Zed pattern: if cursor didn't move, we're at the bottom boundary — propagate
+        // so a parent view can handle cross-block navigation.
+        if self.cursor() == cursor_before {
+            cx.propagate();
+        }
     }
 
     pub(super) fn page_up(&mut self, _: &MovePageUp, window: &mut Window, cx: &mut Context<Self>) {

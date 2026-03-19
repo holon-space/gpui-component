@@ -913,6 +913,15 @@ impl InputState {
         self.focus(window, cx);
     }
 
+    /// Set the cursor to a byte offset without focusing.
+    ///
+    /// Useful for callers that need to position the cursor before transferring
+    /// focus (e.g. cross-block navigation). Does not require `&mut Window`.
+    pub fn set_cursor_offset(&mut self, offset: usize, cx: &mut Context<Self>) {
+        self.move_to(offset, None, cx);
+        self.update_preferred_column();
+    }
+
     /// Focus the input field.
     pub fn focus(&self, window: &mut Window, cx: &mut Context<Self>) {
         self.focus_handle.focus(window, cx);
