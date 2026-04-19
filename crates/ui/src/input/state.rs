@@ -37,7 +37,16 @@ use crate::input::{
     popovers::{ContextMenu, DiagnosticPopover, HoverPopover, MouseContextMenu},
     search::{self, SearchPanel},
 };
+use crate::menu::PopupMenu;
 use crate::{Root, history::History};
+
+/// Closure type for extending the right-click context menu on an [`InputState`].
+///
+/// Called after the built-in Cut/Copy/Paste/Select All items are appended; the
+/// returned [`PopupMenu`] replaces the previous value so embedders can append
+/// their own items (usually via [`PopupMenu::separator`] + [`PopupMenu::item`]).
+pub type ContextMenuExtender =
+    Rc<dyn Fn(PopupMenu, &mut Window, &mut Context<PopupMenu>) -> PopupMenu>;
 
 #[derive(Action, Clone, PartialEq, Eq, Deserialize)]
 #[action(namespace = input, no_json)]
@@ -343,6 +352,9 @@ pub struct InputState {
     /// Completion/CodeAction context menu
     pub(super) context_menu: Option<ContextMenu>,
     pub(super) mouse_context_menu: Entity<MouseContextMenu>,
+    /// Optional closure that receives the freshly built right-click popup
+    /// menu so embedders can append extra items (e.g. a "Share subtree" entry).
+    pub(super) context_menu_extender: Option<ContextMenuExtender>,
     /// A flag to indicate if we are currently inserting a completion item.
     pub(super) completion_inserting: bool,
     pub(super) hover_popover: Option<Entity<HoverPopover>>,
@@ -439,6 +451,7 @@ impl InputState {
             diagnostic_popover: None,
             context_menu: None,
             mouse_context_menu,
+            context_menu_extender: None,
             completion_inserting: false,
             hover_popover: None,
             hover_definition: HoverDefinition::default(),
@@ -772,6 +785,42 @@ impl InputState {
     pub fn clean_on_escape(mut self) -> Self {
         self.clean_on_escape = true;
         self
+    }
+
+    /// Register a closure that extends the right-click context menu.
+    ///
+    /// The closure receives a [`PopupMenu`] already populated with Cut/Copy/
+    /// Paste/Select All (plus LSP actions for code editors) and must return
+    /// the extended menu. Typical usage is to append a separator plus one or
+    /// more embedder-specific items:
+    ///
+    /// ```ignore
+    /// state.context_menu_extender(|menu, _, _| {
+    ///     menu.separator()
+    ///         .item(PopupMenuItem::new("Share subtree…").on_click(|_, _, cx| {
+    ///             /* ... */
+    ///         }))
+    /// });
+    /// ```
+    pub fn context_menu_extender(
+        mut self,
+        f: impl Fn(PopupMenu, &mut Window, &mut Context<PopupMenu>) -> PopupMenu + 'static,
+    ) -> Self {
+        self.context_menu_extender = Some(Rc::new(f));
+        self
+    }
+
+    /// Imperative variant of [`Self::context_menu_extender`].
+    pub fn set_context_menu_extender(
+        &mut self,
+        f: impl Fn(PopupMenu, &mut Window, &mut Context<PopupMenu>) -> PopupMenu + 'static,
+    ) {
+        self.context_menu_extender = Some(Rc::new(f));
+    }
+
+    /// Remove any previously registered context menu extender.
+    pub fn clear_context_menu_extender(&mut self) {
+        self.context_menu_extender = None;
     }
 
     /// Set the soft wrap mode for multi-line input, default is true.

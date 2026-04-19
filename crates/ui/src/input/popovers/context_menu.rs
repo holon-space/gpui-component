@@ -55,6 +55,7 @@ impl InputState {
         let has_paste = is_enable && cx.read_from_clipboard().is_some();
 
         let action_context = self.focus_handle.clone();
+        let extender = self.context_menu_extender.clone();
         self.mouse_context_menu.update(cx, |this, cx| {
             this.mouse_position = event.position;
             this.menu.update(cx, |menu, cx| {
@@ -81,6 +82,12 @@ impl InputState {
                     .menu_with_enable(t!("Input.Paste"), Box::new(input::Paste), has_paste)
                     .separator()
                     .menu(t!("Input.Select All"), Box::new(input::SelectAll));
+
+                // Let the embedder append additional items (e.g. "Share subtree…").
+                let new_menu = match extender {
+                    Some(f) => f(new_menu, window, cx),
+                    None => new_menu,
+                };
 
                 menu.menu_items = new_menu.menu_items;
                 menu.action_context = Some(action_context);
