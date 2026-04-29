@@ -16,3 +16,15 @@ crates/story-web/www/src/wasm/*.ts
 # Frontend build artifacts
 crates/story-web/www/dist/
 crates/story-web/www/bun.lockb
+.code-graph/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+
+# Gas City
+.beads/*
+!.beads/config.yaml
+!.beads/metadata.json
+!.beads/identity.toml

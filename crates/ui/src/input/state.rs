@@ -2054,10 +2054,12 @@ impl InputState {
         ))
     }
 
-    /// Replace text in range in silent.
+    /// Replace text in range silently.
     ///
-    /// This will not trigger any UI interaction, such as auto-completion.
-    pub(crate) fn replace_text_in_range_silent(
+    /// Replaces text in a UTF-16 range without firing [`InputEvent::Change`]
+    /// or triggering completion handlers. Use this when applying remote deltas
+    /// to avoid echo loops.
+    pub fn replace_text_in_range_silent(
         &mut self,
         range_utf16: Option<Range<usize>>,
         new_text: &str,
@@ -2067,6 +2069,18 @@ impl InputState {
         self.silent_replace_text = true;
         self.replace_text_in_range(range_utf16, new_text, window, cx);
         self.silent_replace_text = false;
+    }
+
+    /// The UTF-16 range currently marked by IME composition, if any.
+    ///
+    /// During IME composition the OS owns a transient text range; replacing text
+    /// underneath it corrupts IME state. Callers should check this before applying
+    /// remote edits and either skip (Strategy A) or buffer-and-drain (Strategy B)
+    /// until the composition ends.
+    pub fn ime_marked_range(&self) -> Option<Range<usize>> {
+        self.ime_marked_range
+            .as_ref()
+            .map(|sel| self.range_to_utf16(&sel.clone().into()))
     }
 
     /// Update fold candidates from tree-sitter syntax tree (full extraction).
